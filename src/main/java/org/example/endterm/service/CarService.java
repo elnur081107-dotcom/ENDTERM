@@ -4,6 +4,7 @@ import org.example.endterm.dto.CarRequestDto;
 import org.example.endterm.entity.Car;
 import org.example.endterm.entity.CarBuilder;
 import org.example.endterm.repository.CarRepository;
+import org.example.endterm.utils.CarCache;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -12,6 +13,9 @@ import java.util.List;
 public class CarService {
 
     private final CarRepository carRepository;
+    private final CarCache cache = CarCache.getInstance();
+
+    private static final String ALL_CARS_KEY = "allCars";
 
     public CarService(CarRepository carRepository) {
         this.carRepository = carRepository;
@@ -29,11 +33,26 @@ public class CarService {
         }
 
         Car car = builder.build();
-        return carRepository.save(car);
+        Car saved = carRepository.save(car);
+
+        cache.remove(ALL_CARS_KEY);
+
+        return saved;
     }
 
     public List<Car> getAll() {
-        return carRepository.findAll();
+
+        if (cache.contains(ALL_CARS_KEY)) {
+            System.out.println("Returning cars from cache...");
+            return (List<Car>) cache.get(ALL_CARS_KEY);
+        }
+
+        System.out.println("Fetching cars from database...");
+        List<Car> cars = carRepository.findAll();
+
+        cache.put(ALL_CARS_KEY, cars);
+
+        return cars;
     }
 
     public Car getById(Long id) {
@@ -42,6 +61,7 @@ public class CarService {
     }
 
     public Car update(Long id, CarRequestDto dto) {
+
         Car car = getById(id);
 
         car.update(
@@ -50,13 +70,20 @@ public class CarService {
                 dto.batteryCapacity
         );
 
-        return carRepository.save(car);
+        Car updated = carRepository.save(car);
+
+        cache.remove(ALL_CARS_KEY);
+
+        return updated;
     }
 
     public void delete(Long id) {
         if (!carRepository.existsById(id)) {
             throw new RuntimeException("Car not found");
         }
+
         carRepository.deleteById(id);
+
+        cache.remove(ALL_CARS_KEY);
     }
 }

@@ -1,212 +1,316 @@
-# Endterm Project — Car Rental REST API
+A. Project Overview
 
-## Project Overview
+This project is a Spring Boot RESTful API for a Car Rental System.
+It demonstrates:
 
-This project is a Spring Boot RESTful API for a **Car Rental System**, developed as the Endterm Project.
-It integrates **Design Patterns**, **Component Principles**, **SOLID**, and **REST architecture**.
+Layered architecture (Controller → Service → Repository → Database)
 
-The system allows:
-- Managing cars (CRUD)
-- Renting cars
-- Tracking rentals
-- Working with a relational database using Spring Data JPA
+SOLID principles
 
----
+Advanced OOP concepts
 
-## Technologies Used
+Design Patterns (Singleton, Factory, Builder)
 
-- Java 17
-- Spring Boot 3
-- Spring Data JPA
-- PostgreSQL
-- Maven
-- Hibernate
-- Postman (API testing)
+Component Principles (REP, CCP, CRP)
 
----
+Database integration using JPA
 
-## REST API Documentation
+Global exception handling
 
-### Cars
+In-memory caching (Bonus Task)
 
-#### Create car
-**POST** `/cars`
+The system allows management of cars and rentals through REST endpoints.
 
-```json
+B. REST API Documentation
+Base URL
+http://localhost:8080
+
+1. Car Endpoints
+   🔹 Get All Cars
+   GET /cars
+
+
+Response:
+
+[
 {
-  "type": "ELECTRIC",
-  "name": "Tesla Model 3",
-  "pricePerDay": 120,
-  "batteryCapacity": 75
+"id": 1,
+"name": "Tesla Model 3",
+"pricePerDay": 120.0,
+"available": true
 }
-Get all cars
-GET /cars
+]
 
-Get car by id
+🔹 Get Car By ID
 GET /cars/{id}
 
-Update car
+🔹 Create Car
+POST /cars
+
+
+Request:
+
+{
+"type": "ELECTRIC",
+"name": "Tesla Model S",
+"pricePerDay": 150.0,
+"batteryCapacity": 100
+}
+
+🔹 Update Car
 PUT /cars/{id}
 
-json
-Копировать код
+
+Request:
+
 {
-  "type": "ELECTRIC",
-  "name": "Tesla Model Y",
-  "pricePerDay": 150,
-  "batteryCapacity": 80
+"name": "Tesla Model S Updated",
+"pricePerDay": 170.0,
+"batteryCapacity": 110
 }
-Delete car
+
+🔹 Delete Car
 DELETE /cars/{id}
 
-Rentals
-Rent a car
-POST /rentals
+🔹 Clear Cache (Bonus)
+DELETE /cars/cache
 
-json
-Копировать код
-{
-  "carId": 1,
-  "customerId": 100,
-  "startDate": "2026-02-10",
-  "endDate": "2026-02-15"
-}
-If the car is already rented, the system returns an error.
+C. Design Patterns
+1. Singleton Pattern
 
-Design Patterns
-Singleton Pattern
-Used for:
+Used in:
 
-Database configuration
+CarCache
 
-Example:
+Purpose:
 
-DatabaseConfigSingleton
+Ensure only one cache instance exists in the entire application.
 
-Ensures only one instance exists during application lifecycle.
+Implementation:
 
-Factory Pattern
-Used for creating different car types:
+Private constructor
 
-Car (abstract)
+Static instance
 
-ElectricCar
+Public synchronized getInstance() method
 
-GasCar
+Reason:
+The cache must be shared across the application and must not be recreated per request.
 
-Implemented in:
+2. Builder Pattern
 
-CarFactory
-
-Allows easy extension for new car types.
-
-Builder Pattern
-Used for building complex objects with optional fields.
-
-Implemented in:
+Used in:
 
 CarBuilder
 
-RentalBuilder
+Purpose:
 
-Provides fluent and readable object creation.
+Construct complex Car objects step-by-step.
 
-Component Principles
-REP (Reuse/Release Equivalence Principle)
-Reusable packages:
+Support optional parameters such as battery capacity.
+
+Advantages:
+
+Improves readability
+
+Avoids telescoping constructors
+
+Supports fluent API
+
+Example:
+
+CarBuilder builder = new CarBuilder(type)
+.name(name)
+.pricePerDay(price)
+.available(true)
+.batteryCapacity(capacity);
+
+3. Factory Pattern
+
+Used to create different types of cars based on type.
+
+Example:
+
+ElectricCar
+
+StandardCar
+
+Purpose:
+
+Return base type Car
+
+Allow easy extension without modifying existing logic
+
+Supports Open/Closed Principle.
+
+D. Component Principles
+REP — Reuse/Release Equivalence Principle
+
+Reusable modules:
 
 repository
 
 service
 
-patterns
-
 utils
 
-CCP (Common Closure Principle)
+patterns
+
+Each module has a clear responsibility and can evolve independently.
+
+CCP — Common Closure Principle
+
 Classes that change together are grouped together:
 
-Controllers
+CarController
 
-Services
+CarService
 
-Entities
+CarRepository
 
-CRP (Common Reuse Principle)
-Modules depend only on required classes.
-No unnecessary dependencies between layers.
+Car-related logic is grouped logically.
 
-SOLID & OOP Principles
-Single Responsibility — controllers, services, repositories have distinct responsibilities
+CRP — Common Reuse Principle
 
-Open/Closed — new car types can be added without modifying existing logic
+Modules are not forced to depend on unnecessary classes.
 
-Liskov Substitution — subclasses replace base Car safely
+For example:
 
-Interface Segregation — repositories expose minimal required methods
+Controller does not depend on cache implementation details.
 
-Dependency Inversion — services depend on abstractions (repositories)
+Repository does not depend on business logic.
 
-Database Schema
-Tables:
+E. SOLID & OOP Summary
+Single Responsibility Principle
+
+Controller → handles HTTP requests
+
+Service → business logic
+
+Repository → database operations
+
+Open/Closed Principle
+
+New car types can be added without modifying existing service logic.
+
+Liskov Substitution Principle
+
+Subclasses of Car can be used wherever Car is expected.
+
+Interface Segregation Principle
+
+Repository interfaces are focused and minimal.
+
+Dependency Inversion Principle
+
+Service depends on abstraction (CarRepository), not concrete implementation.
+
+F. Database Schema
 cars
+
+id (PK)
+
+name
+
+price_per_day
+
+available
+
+type
+
+battery_capacity
 
 rentals
 
-Relationships:
-One car can have many rentals
+id (PK)
 
-Rental references a car by car_id
+car_id (FK → cars.id)
 
-System Architecture
-nginx
-Копировать код
+start_date
+
+end_date
+
+Foreign key constraint ensures referential integrity.
+
+Deletion of a car is restricted if rentals reference it.
+
+G. System Architecture
 Controller → Service → Repository → Database
-REST Controllers handle HTTP requests
+↓
+Cache (Singleton)
 
-Services contain business logic
 
-Repositories handle database access
+The caching layer is implemented in the service layer without breaking architecture.
 
-Exception Handling
-The system uses Spring exception handling.
-Errors are returned as JSON responses with HTTP status codes.
+Bonus Task — Caching Layer
+Implementation
 
-Example:
+A simple in-memory cache was implemented using:
 
-json
-Копировать код
-{
-  "status": 404,
-  "error": "Car not found"
-}
-How to Run the Application
-Clone the repository
+ConcurrentHashMap
+
+Singleton pattern
+
+Service-layer integration
+
+Cached Method
+getAll()
+
+How It Works
+
+First request → data fetched from database and stored in cache.
+
+Subsequent requests → data returned from cache.
+
+Cache is invalidated after:
+
+create
+
+update
+
+delete
+
+Benefits
+
+Reduces database calls
+
+Improves performance
+
+Maintains consistency via invalidation
+
+Thread Safety
+
+ConcurrentHashMap is used to ensure safe access in a multi-threaded Spring Boot environment.
+
+H. Instructions to Run the Application
+
+Clone repository
 
 Configure database in application.properties
 
-Run the application:
+Run:
 
-arduino
-Копировать код
 mvn spring-boot:run
-Application runs on:
 
-arduino
-Копировать код
-http://localhost:8080
-API Testing
-API was tested using Postman:
 
-POST /cars
+or run Application.java from IDE.
 
-GET /cars
+Use Postman to test endpoints.
 
-POST /rentals
+I. Reflection
 
-Error handling verified
+This project demonstrates:
 
-Reflection
-This project demonstrates how classic design patterns and SOLID principles
-can be integrated into a modern Spring Boot REST API.
-It improved understanding of clean architecture, layered design, and backend development best practices.
+Real-world backend architecture
+
+Practical use of design patterns
+
+Database integrity management
+
+RESTful API design
+
+Performance optimization via caching
+
+Application of SOLID principles in a Spring Boot system
+
+The integration of patterns, component principles, caching, and REST architecture resulted in a clean, maintainable, and scalable backend system.
